@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>管理系统</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+</head>
+<style>
+    .display {
+        border: 1px solid #000000;
+        width: 675px;
+    }
+
+    ul>li {
+        display: flex;
+        justify-content: space-between;
+        list-style: none;
+        margin-bottom: 10px;
+    }
+
+    .btn-delete {
+        margin-right: 10px;
+    }
+
+    h2 {
+        margin-top: 0px;
+    }
+
+    .errorClass {
+        color: red;
+    }
+
+    /* v-cloak指令、属性选择器 */
+    [v-cloak] {
+        display: none;
+    }
+</style>
+
+<body>
+    <div id="app" v-cloak>
+        <h1>用户管理系统</h1>
+        <h2>操作面板</h2>
+        <div id="operate" class="operate">
+            <form>
+                <label for="idSearch">id: </label>
+                <input type="text" v-model="idSearch" id="idSearch" @change="error = false">
+                <label for="name">姓名: </label>
+                <input type="text" v-model="name" id="name" @change="error = false">
+                <label for="age">年龄: </label>
+                <input type="text" v-model="age" id="age" @change="error = false">
+                <label for="gender">性别: </label>
+                <select name="gender" v-model="gender" id="gender" @change="error = false">
+                    <option value=""></option>
+                    <option value="保密">保密</option>
+                    <option value="男">男</option>
+                    <option value="女">女</option>
+                </select>
+                <button type="button" @click="addUser(name, age, gender)">添加</button>
+                <button type="button" @click="search">搜索</button>
+                <button type="button" @click="modify">修改</button>
+                <button type="reset" @click="reset">重置</button>
+            </form>
+        </div>
+        <div v-show='error' class='errorClass'>
+            <div>{{ errorMessage }}</div>
+        </div>
+        <h2>显示面板</h2>
+        <div id="display" class="display">
+            <ul>
+                <li v-for="item in display" :key="item.id">
+                    <span>&emsp;id: {{item.id}} {{item.name}} - {{item.age}} - {{item.gender}}</span>
+                    <button class="btn-delete" @click="deleteUser(item.id)">删除</button>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script>
+        let idGlobal = 0;
+        let app = new Vue({
+            el: '#app',
+            data: {
+                idSearch: '',
+                name: '',
+                age: '',
+                gender: '',
+                users: [
+                    { id: idGlobal++, name: '小明', age: '27', gender: '男' },
+                    { id: idGlobal++, name: '小李', age: '17', gender: '女' },
+                    { id: idGlobal++, name: '小王', age: '27', gender: '保密' },
+                    { id: idGlobal++, name: '明明', age: '27', gender: '女' },
+                    { id: idGlobal++, name: '李明', age: '17', gender: '男' },
+                    { id: idGlobal++, name: '王李', age: '27', gender: '保密' }
+                ],
+                display: [],
+                error: false,
+                errorMessage: '',
+            },
+            methods: {
+
+                // 添加用户
+                addUser(name, age, gender) {
+                    const NAME_TEST = /^[\u4E00-\u9FA5]{2,10}$/.test(name);
+                    const AGE_TEST = /^(\d|[1-9]\d|1[01]\d|120)$/.test(age);
+                    if (NAME_TEST === false) {
+                        this.error = true;
+                        this.errorMessage = '输入姓名错误, 请输入2-10位中文';
+                        return;
+                    }
+                    if (AGE_TEST === false) {
+                        this.error = true;
+                        this.errorMessage = '输入年龄错误, 年龄范围0-120';
+                        return;
+                    }
+                    if (gender === '') {
+                        this.error = true;
+                        this.errorMessage = '请输入性别';
+                        return;
+                    }
+                    this.$message({ showClose: true, message: '新增成功!', type: 'success' });
+                    this.error = false;
+                    this.users.push({ id: idGlobal++, name, age, gender });
+                    this.display = [...this.users];
+                    this.name = '';
+                    this.age = '';
+                    this.gender = '';
+                },
+                //删除用户
+                deleteUser(id) {
+                    this.users = this.users.filter((item) => item.id !== id);
+                    this.display = [...this.users];
+                },
+                //重置
+                reset() {
+                    this.idSearch = '';
+                    this.name = '';
+                    this.age = '';
+                    this.gender = '';
+                    this.display = [...this.users];
+                },
+                //搜索
+                search() {
+                    this.display = this.users.filter(item => {
+                        if (this.idSearch)
+                            return item.id === parseInt(this.idSearch);
+                        else if (this.name && this.age && this.gender)
+                            return item.name.includes(this.name) && item.age === this.age && item.gender === this.gender;
+                        else if (this.name && this.age && !this.gender)
+                            return item.name.includes(this.name) && item.age === this.age;
+                        else if (this.name && this.gender && !this.age)
+                            return item.name.includes(this.name) && item.gender === this.gender;
+                        else if (this.name && !this.gender && !this.age)
+                            return item.name.includes(this.name);
+                        else if (this.age && this.gender)
+                            return item.age === this.age && item.gender === this.gender;
+                        else if (this.age && !this.gender)
+                            return item.age === this.age;
+                        else if (!this.age && this.gender)
+                            return item.gender === this.gender;
+                        else {
+                            this.$message({
+                                message: 'Please enter 搜索条件',
+                                type: 'warning',
+                            });
+                        }
+                    });
+                },
+
+                //修改
+                modify() {
+                    this.$set(
+                        this.users[this.idSearch],
+                        'name',
+                        this.name
+                    );
+                    this.$set(
+                        this.users[this.idSearch],
+                        'age',
+                        this.age
+                    );
+                    this.$set(
+                        this.users[this.idSearch],
+                        'gender',
+                        this.gender
+                    )
+                    this.idSearch = '';
+                    this.name = '';
+                    this.age = '';
+                    this.gender = '';
+                },
+            },
+            created() {
+                this.display = [...this.users];
+            },
+        })
+    </script>
+</body>
+
+</html>
